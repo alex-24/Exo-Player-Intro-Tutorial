@@ -18,6 +18,7 @@ package com.example.exoplayer
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -28,10 +29,14 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.exoplayer.databinding.ActivityPlayerBinding
 
+private const val TAG = "PlayerActivity"
+
 /**
  * A fullscreen activity to play audio or video streams.
  */
 class PlayerActivity : AppCompatActivity() {
+
+    private val playbackStateListener: Player.Listener = playbackStateListener()
 
     private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
         ActivityPlayerBinding.inflate(layoutInflater)
@@ -83,6 +88,7 @@ class PlayerActivity : AppCompatActivity() {
             .build()
             .also { exoPlayer ->
                 viewBinding.videoView.player = exoPlayer
+                exoPlayer.addListener(playbackStateListener)
                 // Update the track selection parameters to only pick standard definition tracks
                 exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
                         .buildUpon()
@@ -101,6 +107,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun releasePlayer() {
         player?.let { player ->
+            player.removeListener(playbackStateListener)
             playbackPosition = player.currentPosition
             mediaItemIndex = player.currentMediaItemIndex
             playWhenReady = player.playWhenReady
@@ -117,5 +124,18 @@ class PlayerActivity : AppCompatActivity() {
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+}
+
+private fun playbackStateListener() = object : Player.Listener {
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        val stateString: String = when (playbackState) {
+            ExoPlayer.STATE_IDLE -> "ExoPlayer.STATE_IDLE      -"
+            ExoPlayer.STATE_BUFFERING -> "ExoPlayer.STATE_BUFFERING -"
+            ExoPlayer.STATE_READY -> "ExoPlayer.STATE_READY     -"
+            ExoPlayer.STATE_ENDED -> "ExoPlayer.STATE_ENDED     -"
+            else -> "UNKNOWN_STATE             -"
+        }
+        Log.d(TAG, "changed state to $stateString")
     }
 }
